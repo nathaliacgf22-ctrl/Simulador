@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Visagista - @sararamosateliedabeleza</title>
+    <style>
+        body { background-color: #050505; color: #D4AF37; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; min-height: 100vh; justify-content: center; }
+        .painel { border: 1px solid #D4AF37; padding: 30px; border-radius: 8px; width: 100%; max-width: 400px; background-color: #0a0a0a; box-sizing: border-box; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        select, input, button { width: 100%; margin-top: 8px; margin-bottom: 15px; padding: 10px; background-color: #1a1a1a; color: #ffffff; border: 1px solid #333; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #D4AF37; color: #050505; padding: 15px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button:hover { background-color: #b5952f; }
+        .btn-secundario { background-color: #333; color: #fff; margin-top: 5px; }
+        .btn-secundario:hover { background-color: #444; }
+        .btn-link { background: none; color: #888; text-decoration: underline; font-size: 12px; border: none; cursor: pointer; padding: 0; width: auto; margin-bottom: 0; }
+        .spinner { display: none; width: 30px; height: 30px; border: 4px solid #333; border-top: 4px solid #D4AF37; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        footer { margin-top: 40px; text-align: center; border-top: 1px solid #333; padding-top: 20px; width: 100%; max-width: 400px; }
+        .rodape-logo { max-width: 120px; margin-bottom: 10px; }
+        .rodape-texto { color: #D4AF37; font-size: 12px; margin: 0; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
+        
+        /* Telas */
+        #telaLogin { text-align: center; }
+        #telaApp { display: none; width: 100%; max-width: 400px; }
+        .cabecalho-app { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- 🔒 TELA DE LOGIN (Porta de Entrada) -->
+    <div id="telaLogin" class="painel">
+        <img src="logo.png" alt="Logo Ateliê" style="max-width: 150px; margin-bottom: 15px;">
+        <h3 style="color: #D4AF37; margin-bottom: 25px; margin-top: 0;">Acesso Restrito</h3>
+        <input type="password" id="senhaInput" placeholder="Digite a senha do sistema..." style="text-align: center; font-size: 16px;">
+        <button id="btnEntrar">Destrancar Simulador</button>
+    </div>
+
+    <!-- 🎨 TELA DO APLICATIVO (Oculta até colocar a senha) -->
+    <div id="telaApp">
+        <div class="cabecalho-app">
+            <h2 style="margin: 0; font-size: 22px;">Simulador Visagista</h2>
+            <button id="btnSair" class="btn-link">Sair (Lock)</button>
+        </div>
+
+        <div class="painel">
+            <label>Nome da Cliente:</label>
+            <input type="text" id="nomeCliente" placeholder="Ex: Maria Silva...">
+
+            <label>1. Foto da Cliente (Frontal):</label>
+            <input type="file" id="fotoCliente" accept="image/*">
+
+            <label>2. Comprimento Desejado:</label>
+            <select id="comprimento">
+                <option value="short">Curto (Ousadia)</option>
+                <option value="medium">Médio (Elegância)</option>
+                <option value="long">Longo (Fluidez)</option>
+                <option value="manter" selected>Manter (Mesmo comprimento)</option>
+            </select>
+
+            <label>3. Estilo do Corte:</label>
+            <input type="text" id="estilo" placeholder="Ex: Bob assimétrico desfiado...">
+
+            <label>4. Cor e Iluminação:</label>
+            <input type="text" id="cor" placeholder="Ex: Morena iluminada...">
+
+            <button id="btnGerar">Gerar Simulação</button>
+            <div id="loading" class="spinner"></div>
+            
+            <div id="resultadoBox" style="margin-top: 30px; display: none; text-align: center;">
+                <h3 style="color: #D4AF37;">Seu Novo Visual:</h3>
+                <img id="imagemGerada" src="" style="max-width: 100%; border-radius: 8px; border: 2px solid #D4AF37; margin-bottom: 20px;">
+                <button id="btnBaixar">Salvar em Alta Qualidade</button>
+                <button id="btnNova" class="btn-secundario">Nova Simulação</button>
+            </div>
+        </div>
+
+        <footer>
+            <img src="logo.png" alt="Logo Ateliê" class="rodape-logo">
+            <p class="rodape-texto">Legado Visagista<br>Ateliê Sara Ramos</p>
+        </footer>
+    </div>
+
+    <script>
+    // Controle de Telas e Senha
+    const telaLogin = document.getElementById('telaLogin');
+    const telaApp = document.getElementById('telaApp');
+    const senhaInput = document.getElementById('senhaInput');
+
+    function destrancarApp() {
+        telaLogin.style.display = 'none';
+        telaApp.style.display = 'block';
+    }
+
+    function trancarApp() {
+        localStorage.removeItem('senha_atelie_simulador');
+        senhaInput.value = '';
+        telaApp.style.display = 'none';
+        telaLogin.style.display = 'block';
+    }
+
+    // Verifica se já estava logado
+    if (localStorage.getItem('senha_atelie_simulador')) {
+        destrancarApp();
+    }
+
+    document.getElementById('btnEntrar').addEventListener('click', () => {
+        if (!senhaInput.value) return alert("Digite a senha para entrar.");
+        localStorage.setItem('senha_atelie_simulador', senhaInput.value);
+        destrancarApp();
+    });
+
+    document.getElementById('btnSair').addEventListener('click', trancarApp);
+
+    // Funções do App
+    document.getElementById('btnNova').addEventListener('click', () => {
+        document.getElementById('resultadoBox').style.display = 'none';
+        document.getElementById('fotoCliente').value = '';
+        document.getElementById('estilo').value = '';
+        document.getElementById('cor').value = '';
+        document.getElementById('btnGerar').disabled = false;
+    });
+
+    document.getElementById('btnGerar').addEventListener('click', async () => {
+        const btn = document.getElementById('btnGerar');
+        const spinner = document.getElementById('loading');
+        const fileInput = document.getElementById('fotoCliente');
+        const resultadoBox = document.getElementById('resultadoBox');
+        
+        let senha = localStorage.getItem('senha_atelie_simulador');
+
+        if (fileInput.files.length === 0) return alert("Selecione uma foto.");
+
+        spinner.style.display = 'block';
+        resultadoBox.style.display = 'none';
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('foto', fileInput.files[0]);
+            formData.append('comprimento', document.getElementById('comprimento').value);
+            formData.append('estilo', document.getElementById('estilo').value);
+            formData.append('cor', document.getElementById('cor').value);
+
+            // ⚠️ COLE A URL DO SEU SERVIDOR DE SIMULAÇÃO ABAIXO
+            const urlSimulador = 'https://simulador-0spy.onrender.com';
+
+            const response = await fetch(urlSimulador, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${senha}` },
+                body: formData
+            });
+
+            if(response.status === 401) {
+                trancarApp();
+                throw new Error("Senha Incorreta!");
+            }
+
+            const resultado = await response.json();
+            
+            if(resultado.status === "Sucesso") {
+                document.getElementById('imagemGerada').src = resultado.imagemUrl;
+                resultadoBox.style.display = 'block';
+                
+                document.getElementById('btnBaixar').onclick = () => {
+                    const link = document.createElement('a');
+                    link.href = resultado.imagemUrl;
+                    link.download = 'Dossie-Visagismo.jpg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+            } else {
+                alert("Erro: " + resultado.error);
+            }
+        } catch (error) {
+            if (error.message === "Senha Incorreta!") {
+                alert("Acesso Negado: A senha que você digitou está incorreta.");
+            } else {
+                alert("Erro de conexão. Verifique sua internet.");
+            }
+        } finally {
+            spinner.style.display = 'none';
+            btn.disabled = false;
+        }
+    });
+    </script>
+</body>
+</html>
